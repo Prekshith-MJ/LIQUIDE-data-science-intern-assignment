@@ -47,3 +47,4 @@ faiss_index/
 
 # Logs
 *.log
+liquide/

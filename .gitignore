@@ -2,4 +2,13 @@ venv/
 __pycache__/
 *.pyc
 .env
-faiss_index/
+faiss_index/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python/
+env/
+venv/
+liquide/ # if the entire environment should be excluded
+*.egg-info/
+.eggs/

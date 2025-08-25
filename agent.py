@@ -10,41 +10,22 @@ client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
 )
 
-def query_llm(context: str, question: str, is_financial: bool = True) -> str:
+def query_llm(context: str, question: str) -> str:
     """
     Use OpenRouter LLM to generate a response based on context and question.
+    LLM will automatically use financial style for financial content, general style otherwise.
     """
     try:
-        if is_financial:
-            system_prompt = """You replicate financial glossary entries exactly. Provide ONLY the definition text without any additional commentary.
-            
-            OUTPUT FORMAT:
-            [Term]
-            [Definition text exactly as it appears in financial documentation]
-            
-            EXAMPLES:
-            Input: "Regulatory arbitrage"
-            Output: "Regulatory arbitrage\nA financial contract or a series of transactions undertaken, entirely or in part, because the transaction(s) enable(s) one or more of the counterparties to accomplish a financial or operating objective which is unavailable to them directly because of regulatory obstacles."
-            
-            Input: "Rematerialisation"
-            Output: "Rematerialisation\nThe process of converting electronic holdings into physical securities through a Depository Participant."
-            
-            Follow this exact pattern for all terms."""
-        else:
-            system_prompt = """You provide clear, concise definitions in glossary format. Provide ONLY the definition text without any additional commentary.
-            
-            OUTPUT FORMAT:
-            [Term]
-            [Definition text]
-            
-            EXAMPLES:
-            Input: "Music"
-            Output: "Music\nAn art form and cultural activity consisting of sound and silence expressed through time."
-            
-            Input: "Technology"
-            Output: "Technology\nThe application of scientific knowledge for practical purposes, especially in industry."
-            
-            Provide direct definitions without mentioning finance or source."""
+        system_prompt = """You are a helpful research assistant. Provide answers in bullet point format.
+        
+        OUTPUT FORMAT:
+        • [Term]: [Definition text]
+        
+    	If the context contains financial content, use precise financial terminology and style.
+		If the context contains general content, use clear, concise definitions.
+		Always use bullet points for answers.
+		For multiple terms, provide the answer for each term in a separate point.
+		Do not include introductory or filler sentences — only structured responses."""
         
         completion = client.chat.completions.create(
             extra_headers={
@@ -68,6 +49,24 @@ def query_llm(context: str, question: str, is_financial: bool = True) -> str:
     except Exception as e:
         return f"Error calling LLM: {str(e)}"
 
+def search_with_multiple_models(query: str) -> str:
+    """
+    Try multiple embedding models for better retrieval.
+    First try mpnet (better), then fallback to miniLM (original).
+    """
+    # Try mpnet model first (better quality)
+    try:
+        from vectorstore import search_vectorstore_multi
+        mpnet_result = search_vectorstore_multi(query, model_type="mpnet")
+        if mpnet_result and mpnet_result != "NO_MATCH":
+            return mpnet_result
+    except:
+        pass
+    
+    # Fallback to original miniLM model
+    original_result = search_vectorstore(query)
+    return original_result
+
 def query_agent(question: str) -> str:
     """
     First try to answer from PDF vectorstore.
@@ -77,31 +76,25 @@ def query_agent(question: str) -> str:
     clean_question = question.replace("What is", "").replace("what is", "").strip().strip('?')
     
     # Search vectorstore for relevant context
-    pdf_context = search_vectorstore(clean_question, k=5)
+    pdf_context = search_with_multiple_models(clean_question)
     
-    # If we have good PDF context, try to get answer from it (financial)
-    if pdf_context and pdf_context != "NO_MATCH" and len(pdf_context.strip()) > 30:
-        pdf_answer = query_llm(pdf_context, clean_question, is_financial=True)
-        # Check if the answer looks like a proper definition
-        if (len(pdf_answer.strip()) > 20 and 
-            "\n" in pdf_answer and
-            not pdf_answer.startswith("I couldn't") and
-            not pdf_answer.startswith("Error")):
+    # If we have good PDF context, use it (LLM auto-detects financial style)
+    if pdf_context and pdf_context != "NO_MATCH":
+        pdf_answer = query_llm(pdf_context, clean_question)
+        if pdf_answer and len(pdf_answer.strip()) > 20:
             return pdf_answer
     
-    # Fall back to web search (general definition)
+    # Fall back to web search (LLM will use general style)
     web_context = web_search(clean_question)
     if web_context and web_context != "NO_MATCH" and not web_context.startswith("Web search failed:"):
-        web_answer = query_llm(web_context, clean_question, is_financial=False)
-        return web_answer
+        web_answer = query_llm(web_context, clean_question)
+        if web_answer and len(web_answer.strip()) > 20:
+            return web_answer
     
-    return "I couldn't find any relevant information to answer your question."
+    return "• I couldn't find any relevant information to answer your question."
 
 # For testing
 if __name__ == "__main__":
-    test_questions = ["What is music?", "What is a dealer?", "What is regulatory arbitrage?", "What is technology?"]
-    for question in test_questions:
-        result = query_agent(question)
-        print(f"\nQ: {question}")
-        print(f"A: {result}")
-        print("-" * 50)
+    test_question = "What is a dealer?"
+    result = query_agent(test_question)
+    print(f"Result: {result}")

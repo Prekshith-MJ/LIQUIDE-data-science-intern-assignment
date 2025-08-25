@@ -3,7 +3,7 @@ import streamlit as st
 from agent import query_agent   # ✅ correct import
 
 st.set_page_config(page_title="Research Agent", layout="wide")
-st.title("Research Agent (RAG with OpenRouter)")
+st.title("LIQUIDE (DATA RETRIVAL BOT)")
 
 # Initialize session state for messages
 if "messages" not in st.session_state:
@@ -12,7 +12,7 @@ if "messages" not in st.session_state:
 # Sidebar
 with st.sidebar:
     st.header("Settings")
-    st.info("RAG from ingested PDF first, web fallback. Run ingest.py once.")
+    st.info("Data Science Intern : Assignment.  AUTHOR : Prekshith MJ")
 
 # Display chat history
 for message in st.session_state.messages:

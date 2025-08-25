@@ -1,50 +1,11 @@
-venv/
-__pycache__/
-*.pyc
-.env
-faiss_index/__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python/
-env/
-venv/
-liquide/ # if the entire environment should be excluded
-*.egg-info/
-.eggs/
+# Remove cached env, venv, __pycache__, etc.
+git rm -r --cached env venv .venv __pycache__ faiss_index liquide
 
-# Virtual environments
-liquide/
-venv/
-env/
-.env
+# Stage updated .gitignore
+git add .gitignore
 
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+# Commit the cleanup
+git commit -m "remove tracked env and cache files"
 
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints
-
-# IDE files
-.vscode/
-.idea/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Large model files (if any)
-*.bin
-*.safetensors
-models/
-
-# FAISS index files (optional - remove if you want to include them)
-faiss_index/
-
-# Logs
-*.log
-liquide/
+# Push again
+git push origin main

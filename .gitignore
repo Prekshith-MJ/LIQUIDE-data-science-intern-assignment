@@ -9,3 +9,5 @@ git commit -m "remove tracked env and cache files"
 
 # Push again
 git push origin main
+liquide/
+liquide/
